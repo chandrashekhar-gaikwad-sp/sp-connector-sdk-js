@@ -68,6 +68,29 @@ export const connector: Connector = createConnector()
         // TODO: implement me!
     })
 ```
+### Secret scan commands
+
+Handlers for `std:secret-scan:full` and `std:secret-scan:delta` receive a `ScanResponse` instead of a `Response`. It has
+no `send()`: content is handed to the runtime's detection stage with `res.scan()`, and only findings leave the
+execution. Await every `res.scan()` call; it resolves once the stream has taken the unit, which is how backpressure
+reaches the fetch loop. Customizers are not applied to these commands.
+
+```typescript
+export const connector: Connector = createConnector()
+    .stdSecretScanDelta(async (context: Context, input: StdSecretScanDeltaInput, res: ScanResponse) => {
+        for (const record of await fetchChangedRecords(input)) {
+            const result = await res.scan({
+                unitId: `incident:${record.sys_id}:description`,
+                location: { /* where the content came from, never the content itself */ },
+                content: { encoding: 'utf8', text: record.description },
+                mimeType: 'text/plain',
+            })
+            // result.accepted is false for a unit that was skipped (for example binary content); count it as skipped.
+        }
+        res.saveState({ targets: { /* cursor per scan target */ } })
+    })
+```
+
 ### Logging
 
 Use SDK provided logger to ensure log statements will include command execution context fields.
