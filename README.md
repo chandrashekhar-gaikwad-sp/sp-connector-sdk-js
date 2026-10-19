@@ -91,6 +91,18 @@ export const connector: Connector = createConnector()
     })
 ```
 
+For files (attachments, uploads), decide from the file's metadata before downloading it, so unsupported or oversized
+files are never fetched. `classifyScanFile` and `scanFileSkipReason` apply the same policy in every connector:
+
+```typescript
+import { classifyScanFile, scanFileSkipReason } from '@sailpoint/connector-sdk'
+
+const skip = scanFileSkipReason(classifyScanFile(file.contentType, file.name), file.sizeBytes, maxFileBytes, input.extraction)
+if (skip) {
+    coverage.skipped[skip]++ // 'unsupportedType' or 'oversize'; don't download the file
+}
+```
+
 ### Logging
 
 Use SDK provided logger to ensure log statements will include command execution context fields.
